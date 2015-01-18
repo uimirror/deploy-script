@@ -9,7 +9,7 @@
 #**********************************************
 
 #To Show the message
-cp -rv ./autodeploy.sh /home/kumarprd
+# cp -rv ./autodeploy.sh /home/kumarprd
 usage(){
 
   echo "Usage : $0 -r <repo> -b <branch> -u <user> -p <pass>
@@ -35,7 +35,7 @@ operation_in_aws(){
      echo -e "\n\n Now you will be logged in to ec2 instance.. Follow below instructions.."
      echo -e "\n In ec2 terminal run the below commands step by step."
      echo -e "\n cd $(echo $cd_path)"
-     echo -e "\n Now use sudo to execute the script ec2_works.sh, e.g. sudo ./ec2_works.sh"
+     echo -e "\n Now use sudo to execute the script ec2_works.sh, e.g. sudo ./ec2_works.sh\n"
     
      ssh -i $key $user@$EC2 
      
