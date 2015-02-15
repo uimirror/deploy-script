@@ -97,36 +97,38 @@ gradle_comp_git_checkout(){
        upload_aws $grad_path $NEW_BRANCH
 }
 
-
 git_pull_count_dir(){
-       
+
        git_path="$5";
        branch="$2";
        user="$3";
        pass="$4";
        repo="$1";
-       [[ -e ./temp_git ]] && rm -rf ./temp_git 
+       [[ -e ./temp_git ]] && rm -rf ./temp_git
        mkdir ./temp_git ; cd ./temp_git
        $git_path clone -b $branch https://$user:$pass@github.com/$repo
-       repo_name=$(echo $repo | rev |cut -f 1 -d "/" |rev |cut -f 1 -d ".")
-       dir_count=$(ls -l $(echo -e $repo_name)/ | grep ^d | wc -l)
-       if [[ $dir_count -gt 1 ]]; 
-       then 
-        echo -e "\nMultiple repo path found in ./temp_git/$(echo $repo_name) , Choose one from below...\n"
-        echo -e "\e[5m$(find $(pwd)/$repo_name -maxdepth 1 -type d|sed 1,2d)\n";
-        read -rp "Enter the correct path to gradle binary :" GRADLE_PATH;
+       if [[ $? -eq 0 ]]
+       then
+         repo_name=$(echo $repo | rev |cut -f 1 -d "/" |rev |cut -f 1 -d ".")
+         dir_count=$(ls -l $(echo -e $repo_name)/ | grep ^d | wc -l)
+           if [[ $dir_count -gt 1 ]];
+           then
+            echo -e "\nMultiple repo path found in ./temp_git/$(echo $repo_name) , Choose one from below...\n"
+            echo -e "\e[5m$(find $(pwd)/$repo_name -maxdepth 1 -type d|sed 1,2d)\n";
+            read -rp "Enter the correct path to gradle binary :" GRADLE_PATH;
+           else
+            proj_name=$(ls -l $(pwd)/$repo_name |grep  ^d|awk '{print $9}')
+            GRADLE_PATH="$(pwd)/$repo_name/$proj_name"
+          fi
+
+
+          if [[ "X"$GRADLE_PATH != "X" ]];then gradle_comp_git_checkout  $GRADLE_PATH $git_path $repo_name; else echo -e "\e[31m No gradlew path"; exit 12; fi
        else
-        proj_name=$(ls -l $(pwd)/$repo_name |grep  ^d|awk '{print $9}')
-        GRADLE_PATH="$(pwd)/$repo_name/$proj_name"
+          echo "git pull error, exiting";  exit 128;
        fi
-	
-       if [[ "X"$GRADLE_PATH != "X" ]];then gradle_comp_git_checkout  $GRADLE_PATH $git_path $repo_name; else echo -e "\e[31m No gradlew path"; exit 12; fi
-       
-        
-          
+
        #cd .. && rm -rf ./temp_git
 }
-
 
 git_path(){
        which git >& /dev/null
@@ -163,10 +165,10 @@ do
   esac
 done
 
-   if [[ $repo == "" ]]; then echo "No repo mentioned" ; usage ; exit 12; else export repo=$repo; fi
+   if [[ $repo == "" ]]; then echo "No repo mentioned" ; usage ; exit 12; else repo=$repo; fi
    if [[ $branch == "" ]]; then export branch="devlop"; else export $branch; fi
-   if [[ $user == "" ]]; then echo "No Username, exiting"; usage; exit 12; else export $user; fi
-   if [[ $pass == "" ]]; then echo "No passwordd, exitinf"; usage; exit 12; else export $pass; fi
+   if [[ $user == "" ]]; then echo "No Username, exiting"; usage; exit 12; else $user; fi
+   if [[ $pass == "" ]]; then echo "No passwordd, exitinf"; usage; exit 12; else  $pass; fi
   
 java_v18_check(){
    java -version 2>&1 |awk '/version/{print $NF}' |grep "1.8" >& /dev/null
