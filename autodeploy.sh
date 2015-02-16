@@ -167,8 +167,8 @@ done
 
    if [[ $repo == "" ]]; then echo "No repo mentioned" ; usage ; exit 12; else repo=$repo; fi
    if [[ $branch == "" ]]; then export branch="devlop"; else export $branch; fi
-   if [[ $user == "" ]]; then echo "No Username, exiting"; usage; exit 12; else $user; fi
-   if [[ $pass == "" ]]; then echo "No passwordd, exitinf"; usage; exit 12; else  $pass; fi
+   if [[ $user == "" ]]; then echo "No Username, exiting"; usage; exit 12; else user=$user; fi
+   if [[ $pass == "" ]]; then echo "No passwordd, exitinf"; usage; exit 12; else  pass=$pass; fi
   
 java_v18_check(){
    java -version 2>&1 |awk '/version/{print $NF}' |grep "1.8" >& /dev/null
