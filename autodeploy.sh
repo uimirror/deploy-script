@@ -85,7 +85,7 @@ gradle_comp_git_checkout(){
        git_path="$2";
        grad_path="$1";
        repo="$3";
-       if [[ "Y"$grad_path != "Y" ]];then cd $grad_path ; gradlew build distZIp; else echo -e "\e[31m No gradlew path"; exit 12; fi
+       if [[ "Y"$grad_path != "Y" ]];then cd $grad_path ; ./gradlew build distZIp; else echo -e "\e[31m No gradlew path"; exit 12; fi
        cd .. && echo -e "\nBuild of $repo done ..." ; echo -e "\nBelow branches found on git..."; $git_path branch -r
        read -rp "Give a  new branch name for the latest checkout, e.g V1, V2 .. :" NEW_BRANCH;
        echo -e "\n" $NEW_BRANCH 
