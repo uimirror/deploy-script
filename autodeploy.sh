@@ -81,6 +81,7 @@ upload_aws(){
 
 #Build and push to new Branch
 gradle_comp_git_checkout(){
+<<<<<<< HEAD
 
     git_path="$2";
     grad_path="$1";
@@ -127,6 +128,22 @@ guessBranchName(){
     IFS=$OIFS;
     nextBNumber=$((max + 1));
     return "$nextBNumber";
+=======
+       
+       git_path="$2";
+       grad_path="$1";
+       repo="$3";
+       if [[ "Y"$grad_path != "Y" ]];then cd $grad_path ; ./gradlew build distZIp; else echo -e "\e[31m No gradlew path"; exit 12; fi
+       cd .. && echo -e "\nBuild of $repo done ..." ; echo -e "\nBelow branches found on git..."; $git_path branch -r
+       read -rp "Give a  new branch name for the latest checkout, e.g V1, V2 .. :" NEW_BRANCH;
+       echo -e "\n" $NEW_BRANCH 
+       echo -e "\n Now pushing new branch to git...."
+       $git_path checkout -b $NEW_BRANCH
+       $git_path push origin $NEW_BRANCH
+      
+       
+       upload_aws $grad_path $NEW_BRANCH
+>>>>>>> 8961626daf017b2df58531cf8ba0e79f0a11e34f
 }
 
 git_pull_count_dir(){
