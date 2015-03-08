@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-BUILD_PATH=/home/khitish/build
-BUILD_FILE=uim-reach-web.v7.zip
+#set -xv
+#**********************************
+#   Name: ec2_deploy.sh
+#   Date: 06th March 2015
+#   Usage sudo ./ec2_deploy.sh
+#
+#**********************************
 
-
-
-
-
-####script copied with build file#######
-
-
+####script will be substute with dynamic value and copied to EC2#######
+PROJECT_TYPE=java
+BINARY_FILE_NAME=test
+JAVA_VERSION=1.8
 
 
 go_to_build(){

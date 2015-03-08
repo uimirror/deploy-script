@@ -25,6 +25,40 @@ sayBye(){
     echo "Bye!!!";
 }
 
+#Delete the Branch which was unsuccessful while installing
+delete_unsuccess_branch(){
+    cd $DEPLOY_SCRIPT_HOME/$TEMP_REPO
+    repo_loc=$(ls);
+    cd $repo_loc;
+    echo "Now deleteing the remote $NEW_BRANCH branch because of unsuccessful install."
+    echo "$(pwd)"
+    git push origin --delete $NEW_BRANCH
+    if [ $? -ne 0 ]; then
+        echo "CRITICAL: Unable to delete branch $NEW_BRANCH"
+        exit 12
+    fi
+}
+
+#Prepares the deploye script with dynamic value substitue
+prepare_deploy_script(){
+
+    echo "Making Deploy Script to deploy on EC2 $ZIP_PATH/$EC2_DEPLOY_SCRIPT";
+
+    sed -i.bak "s/^\(PROJECT_TYPE=\).*/\1${PROJECT_TYPE}/" $ZIP_PATH/$EC2_DEPLOY_SCRIPT
+
+    sed -i.bak "s/^\(BINARY_FILE_NAME=\).*/\1${BINARY_FILE_NAME}/" $ZIP_PATH/$EC2_DEPLOY_SCRIPT
+
+    sed -i.bak "s/^\(JAVA_VERSION=\).*/\1${JAVA_VERSION}/" $ZIP_PATH/$EC2_DEPLOY_SCRIPT
+
+    # remove the Back up file
+    rm -rf $ZIP_PATH/$EC2_DEPLOY_SCRIPT".bak";
+
+    chmod 777 $ZIP_PATH/$EC2_DEPLOY_SCRIPT;
+
+    echo "Deployment Descriptor for the EC2 Deployment is completed."
+
+}
+
 #prepeare ZIP to upload to aws
 prepare_to_upload_aws(){
     echo "Preparing Distrubutions for AWS";
@@ -32,41 +66,72 @@ prepare_to_upload_aws(){
         ZIP_PATH=$GRADLE_BUILD_PATH/build/distributions;
         BINARY_FILE_NAME=$PROJECT_NAME.$NEW_BRANCH.zip;
         mv "$ZIP_PATH/$PROJECT_NAME.zip" "$ZIP_PATH/$BINARY_FILE_NAME";
+        if [ $? -ne 0 ]; then
+            echo "CRITICAL: Unable to rename binary $BINARY_FILE_NAME on path $ZIP_PATH"
+            delete_unsuccess_branch;
+            exit 12
+        fi
+        echo "Adding deploy script to binary";
+        cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT $ZIP_PATH;
+        prepare_deploy_script;
+        zip -u -j $ZIP_PATH/$BINARY_FILE_NAME $ZIP_PATH/$EC2_DEPLOY_SCRIPT;
+        if [ $? -ne 0 ]; then
+            echo "CRITICAL: Unable to add EC2 Deploy Script to binary $BINARY_FILE_NAME on path $ZIP_PATH"
+            delete_unsuccess_branch;
+            exit 12
+        fi
     else
-        cd ..;
-        ZIP_PATH=$(pwd);
+        cd $DEPLOY_SCRIPT_HOME/$TEMP_REPO;
+        ZIP_PATH=$DEPLOY_SCRIPT_HOME/$TEMP_REPO;
         project_name=$(ls);
+        cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT .;
         BINARY_FILE_NAME=$project_name.$NEW_BRANCH.zip;
+        prepare_deploy_script;
         zip -r $BINARY_FILE_NAME .;
+        if [ $? -ne 0 ]; then
+            echo "CRITICAL: Unable to create binary for the project $project_name."
+            delete_unsuccess_branch;
+            exit 12
+        fi
     fi
+
     echo "Created the Binary with name $BINARY_FILE_NAME in $ZIP_PATH";
 
 }
+
+#Grant Sudo access to the destination
+grant_access_destination(){
+    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP "sudo chown -R jayaram:jayaram $EC2_DEPLOYMENT_LOC"
+    echo "Granted permision to $EC2_DEPLOYMENT_LOC"
+
+}
+
 #Copy the binary to AWS
 copy_binary_to_aws(){
     prepare_to_upload_aws;
     echo -e "\n Pushing build file to EC2....\n";
-    echo $(pwd)
-    ec2_script="../../ec2_works.sh";
 
+        delete_unsuccess_branch;
     read -rp "Enter IP or Public DNS of EC2 instance :" EC2_IP
     read -rp "Give path to the ec2 security key :" EC2_SECURITY_KEY
     read -rp "Give full path in the ec2 to which file will be copied :" EC2_DEPLOYMENT_LOC
     read -rp "Enter username to connect to ec2 instance :" EC2_USER_ID
-    #read -rp "Provide password to connect ec2 : " -s $pass
-
-
-    sed -i '/BUILD_PATH=/d' $ec2_script
-    sed -i "2 i\BUILD_PATH=$ec2p" $ec2_script
-
-    sed -i '/BUILD_FILE=/d' $ec2_script
-    sed -i "3 i\BUILD_FILE=$build_file" $ec2_script
 
     if type -p scp; then
         echo "Found SCP to copy binary";
-        scp -i $EC2_SECURITY_KEY $ZIP_PATH/$BINARY_FILE_NAME $ec2_script $EC2_USER_ID@$EC2_IP:$EC2_DEPLOYMENT_LOC;
+        scp -i $EC2_SECURITY_KEY $ZIP_PATH/$BINARY_FILE_NAME $EC2_USER_ID@$EC2_IP:$EC2_DEPLOYMENT_LOC;
+        if [ $? -eq 1 ]; then
+            echo "No permision to upload to the detination ${EC2_DEPLOYMENT_LOC}"
+            grant_access_destination;
+            scp -i $EC2_SECURITY_KEY $ZIP_PATH/$BINARY_FILE_NAME $EC2_USER_ID@$EC2_IP:$EC2_DEPLOYMENT_LOC;
+        fi
+        if [ $? -ne 0 ]; then
+            echo "CRITICAL: Failed to scp ${BINARY_FILE_NAME} to dest ${EC2_DEPLOYMENT_LOC}."
+            delete_unsuccess_branch;
+            exit 12
+        fi
     else
-        echo "Can't copy to remote location, as SCP not found";sayBye; exit 12
+        echo "Can't copy to remote location, as SCP not found";sayBye;delete_unsuccess_branch;exit 12
     fi
 }
 
@@ -74,13 +139,14 @@ copy_binary_to_aws(){
 install_in_aws(){
     echo "Application Installation process started";
     copy_binary_to_aws;
+    delete_unsuccess_branch;
 
     echo -e "\n\n Now you will be logged in to ec2 instance.. Follow below instructions.."
     echo -e "\n In ec2 terminal run the below commands step by step."
     echo -e "\n cd $(echo $EC2_DEPLOYMENT_LOC)"
     echo -e "\n Now use sudo to execute the script ec2_works.sh, e.g. sudo ./ec2_works.sh\n"
 
-    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP
+    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP "cd $EC2_DEPLOYMENT_LOC"
 
 }
 
@@ -116,7 +182,7 @@ git_push_new_branch(){
     availableBranches=$($GIT_PATH branch -r);
     echo -e "\nCurrently Below branches found on git...$availableBranches";
     guess_new_branch_name "$availableBranches";
-    echo -e "\n Now pushing $NEW_BRANCH branch to git...."
+    echo -e "\n Now pushing $NEW_BRANCH branch to git....";
     $GIT_PATH checkout -b $NEW_BRANCH;
     $GIT_PATH push origin $NEW_BRANCH;
 
@@ -129,7 +195,7 @@ set_project_gradle_path(){
     repo_name=$(echo $REPO | rev |cut -f 1 -d "/" |rev |cut -f 1 -d ".")
     dir_count=$(ls -l $(echo -e $repo_name)/ | grep ^d | wc -l)
     if [[ $dir_count -gt 1 ]]; then
-        echo -e "\nMultiple project found in ./temp_repo/$(echo $repo_name) , Choose one from below...\n"
+        echo -e "\nMultiple project found in ./$TEMP_REPO/$(echo $repo_name) , Choose one from below...\n"
         echo -e "\e[5m$(find $(pwd)/$repo_name -maxdepth 1 -type d|sed 1,2d)\n";
         read -rp "Enter the project path to be deployed :" GRADLE_BUILD_PATH;
     else
@@ -192,9 +258,9 @@ readGitCredentials(){
 
 #Clone The Repository using Git
 git_repo_clone(){
-    echo "Cloning Branch: $BRANCH from $REPO";
-    [[ -e ./temp_repo ]] && rm -rf ./temp_repo
-    mkdir ./temp_repo ; cd ./temp_repo
+    echo "\nCloning Branch: $BRANCH from $REPO";
+    [[ -e ./$TEMP_REPO ]] && rm -rf ./$TEMP_REPO
+    mkdir ./$TEMP_REPO ; cd ./$TEMP_REPO
     readGitCredentials;
     $GIT_PATH clone -b $BRANCH https://$GIT_CRED@github.com/$REPO
     if [[ $? -eq 0 ]]; then
@@ -255,6 +321,9 @@ fi
 #Default project type is java
 PROJECT_TYPE='java';
 JAVA_VERSION="1.8";
+DEPLOY_SCRIPT_HOME=$(pwd);
+TEMP_REPO="temp_repo";
+EC2_DEPLOY_SCRIPT="ec2deploy.sh";
 while getopts ":p:j:r:b:" opt;
     do
         case $opt in
