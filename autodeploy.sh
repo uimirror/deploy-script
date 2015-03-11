@@ -44,16 +44,19 @@ prepare_deploy_script(){
 
     echo "Making Deploy Script to deploy on EC2 $ZIP_PATH/$EC2_DEPLOY_SCRIPT";
 
-    sed -i.bak "s/^\(PROJECT_TYPE=\).*/\1${PROJECT_TYPE}/" $ZIP_PATH/$EC2_DEPLOY_SCRIPT
+    sed -i.bak "s/^\(PROJECT_TYPE=\).*/\1${PROJECT_TYPE}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT
+    sed -i.bak "s/^\(PROJECT_NAME=\).*/\1${PROJECT_NAME}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT
 
-    sed -i.bak "s/^\(BINARY_FILE_NAME=\).*/\1${BINARY_FILE_NAME}/" $ZIP_PATH/$EC2_DEPLOY_SCRIPT
+    sed -i.bak "s/^\(BINARY_FILE_NAME=\).*/\1${BINARY_FILE_NAME}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT
 
-    sed -i.bak "s/^\(JAVA_VERSION=\).*/\1${JAVA_VERSION}/" $ZIP_PATH/$EC2_DEPLOY_SCRIPT
+    sed -i.bak "s/^\(JAVA_VERSION=\).*/\1${JAVA_VERSION}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT
+
+    sed -i.bak "s/^\(SERVER_IP=\).*/\1${EC2_IP}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT
 
     # remove the Back up file
-    rm -rf $ZIP_PATH/$EC2_DEPLOY_SCRIPT".bak";
+    rm -rf $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT".bak";
 
-    chmod 777 $ZIP_PATH/$EC2_DEPLOY_SCRIPT;
+    chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT;
 
     echo "Deployment Descriptor for the EC2 Deployment is completed."
 
@@ -72,9 +75,13 @@ prepare_to_upload_aws(){
             exit 12
         fi
         echo "Adding deploy script to binary";
-        cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT $ZIP_PATH;
+        cd $ZIP_PATH;
+        unzip $BINARY_FILE_NAME;
+        rm -rf $BINARY_FILE_NAME;
+        cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
         prepare_deploy_script;
-        zip -u -j $ZIP_PATH/$BINARY_FILE_NAME $ZIP_PATH/$EC2_DEPLOY_SCRIPT;
+        zip -r $BINARY_FILE_NAME .;
+        rm -rf $PROJECT_NAME;
         if [ $? -ne 0 ]; then
             echo "CRITICAL: Unable to add EC2 Deploy Script to binary $BINARY_FILE_NAME on path $ZIP_PATH"
             delete_unsuccess_branch;
@@ -83,13 +90,12 @@ prepare_to_upload_aws(){
     else
         cd $DEPLOY_SCRIPT_HOME/$TEMP_REPO;
         ZIP_PATH=$DEPLOY_SCRIPT_HOME/$TEMP_REPO;
-        project_name=$(ls);
         cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT .;
-        BINARY_FILE_NAME=$project_name.$NEW_BRANCH.zip;
+        BINARY_FILE_NAME=$PROJECT_NAME.$NEW_BRANCH.zip;
         prepare_deploy_script;
         zip -r $BINARY_FILE_NAME .;
         if [ $? -ne 0 ]; then
-            echo "CRITICAL: Unable to create binary for the project $project_name."
+            echo "CRITICAL: Unable to create binary for the project $PROJECT_NAME."
             delete_unsuccess_branch;
             exit 12
         fi
@@ -108,14 +114,14 @@ grant_access_destination(){
 
 #Copy the binary to AWS
 copy_binary_to_aws(){
-    prepare_to_upload_aws;
+
     echo -e "\n Pushing build file to EC2....\n";
 
-        delete_unsuccess_branch;
-    read -rp "Enter IP or Public DNS of EC2 instance :" EC2_IP
+    read -rp "Enter IP of EC2 instance :" EC2_IP
     read -rp "Give path to the ec2 security key :" EC2_SECURITY_KEY
     read -rp "Give full path in the ec2 to which file will be copied :" EC2_DEPLOYMENT_LOC
     read -rp "Enter username to connect to ec2 instance :" EC2_USER_ID
+    prepare_to_upload_aws;
 
     if type -p scp; then
         echo "Found SCP to copy binary";
@@ -142,11 +148,7 @@ install_in_aws(){
     delete_unsuccess_branch;
 
     echo -e "\n\n Now you will be logged in to ec2 instance.. Follow below instructions.."
-    echo -e "\n In ec2 terminal run the below commands step by step."
-    echo -e "\n cd $(echo $EC2_DEPLOYMENT_LOC)"
-    echo -e "\n Now use sudo to execute the script ec2_works.sh, e.g. sudo ./ec2_works.sh\n"
-
-    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP "cd $EC2_DEPLOYMENT_LOC"
+    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP -t 'bash -l -c "ls;cd $EC2_DEPLOYMENT_LOC;sudo mkdir $PROJECT_NAME.$NEW_BRANCH; unzip $BINARY_FILE_NAME -d $PROJECT_NAME.$NEW_BRANCH/;sudo rm -rf $BINARY_FILE_NAME;cd $PROJECT_NAME.$NEW_BRANCH/$PROJECT_NAME/scripts/;./$EC2_DEPLOY_SCRIPT; bash;"'
 
 }
 
@@ -211,6 +213,7 @@ build_project(){
     if [[ "$PROJECT_TYPE" != "java" ]]; then
         repo_loc=$(ls);
         cd $repo_loc;
+        PROJECT_NAME=$repo_loc;
         echo "No Project Build Required, as its not a java project"
         return 1;
     fi
@@ -219,7 +222,7 @@ build_project(){
     if [[ ! "$GRADLE_BUILD_PATH" ]]; then echo "Gradle Build Path $GRADLE_BUILD_PATH is invalid."; sayBye; exit 12; fi
     temp_loc=$(pwd);
     cd $GRADLE_BUILD_PATH;
-    ./gradlew build distZIp;
+    ./gradlew build distZip;
     echo "$PROJECT_NAME, Build Completed";
     #Move Back to the main repo location
     cd $temp_loc;
