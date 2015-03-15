@@ -66,7 +66,7 @@ stop_started_java_app_if_required(){
         for used_port in "${JAVA_INSTANCE_PORTS[@]}"
             do
                 echo "Stoping Server from port ${used_port}";
-                sudo ./stop.sh -p ${used_port}
+                sudo -u uim_tomcat ./stop.sh -p ${used_port}
             done
         exit 2;
     fi
