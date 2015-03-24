@@ -57,6 +57,7 @@ prepare_deploy_script(){
     rm -rf $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT".bak";
 
     chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT;
+    chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_JAVA_APP_SCRIPT;
 
     echo "Deployment Descriptor for the EC2 Deployment is completed."
 

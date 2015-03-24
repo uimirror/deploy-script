@@ -117,6 +117,10 @@ invoke_app(){
     sudo -u uim_tomcat ../bin/start.sh -p $tomcat_port -n $nio_port -e $use_env
 #JAVA_OPTS="-Denv=$use_env -Dport=$tomcat_port -Dnioport=$nio_port" ../bin/uim_api_explorer_conf > /dev/null 2>&1 &
     running_pid=$?;
+    if [[ $running_pid == 0 ]]; then
+        echo "Java Process has not be started, check app logs"
+        exit 1;
+    fi
     echo "App starting with process ID $running_pid";
 
 }
