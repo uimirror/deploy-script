@@ -16,6 +16,13 @@ usage(){
         env :  prod OR dev, default prod"
 
 }
+note_main_user(){
+    MAIN_USER=$(whoami);
+}
+lets_re_login(){
+    sudo -u $MAIN_USER ls>/dev/null;
+    echo "Now Re Login as $(whoami)";
+}
 function is_port_free {
     #Return 1 if port free else 2
     netstat -ntpl | grep [0-9]:${1:-$1} -q ;
@@ -29,7 +36,7 @@ function is_port_free {
 }
 #Confirmation if user wants me to sleep again
 will_i_sleep(){
-    sudo read -rp "Do you want me to take rest again? (Y/N)" take_more_rest;
+    read -rp "Do you want me to take rest again? (Y/N)" take_more_rest;
     shopt -s nocasematch;
     case "$take_more_rest" in
         y) echo "Taking Rest..."; lets_sleep;;
@@ -39,12 +46,13 @@ will_i_sleep(){
 #Sleep methods
 lets_sleep(){
     echo "Let me sleep for some time, till your application started up";
-    sudo read -rp "How long will be good for me you think?" SLEEP_TIMER;
-    if [[ $SLEEP_TIMER =~ [0-9]+ ]]; then
+    read -rp "How long will be good for me you think?" SLEEP_TIMER;
+    num_re='^[0-9]+$';
+    if ! [[ $SLEEP_TIMER =~ $num_re ]] ; then
+        echo "Wrong Input, I am taking rest for 1 mins then";SLEEP_TIMER='1m';
+    else
         SLEEP_TIMER=$SLEEP_TIMER'm';
         echo "Thanks for allowing me to take rest for $SLEEP_TIMER" ;
-    else
-        echo "Wrong Input, I am taking rest for 1 mins then";SLEEP_TIMER='1m';
     fi
     sleep $SLEEP_TIMER;
     echo "I am Back...";
@@ -114,9 +122,10 @@ format_user_input(){
 }
 #Invoke app process
 invoke_app(){
-    sudo -u uim_tomcat ../bin/start.sh -p $tomcat_port -n $nio_port -e $use_env
-#JAVA_OPTS="-Denv=$use_env -Dport=$tomcat_port -Dnioport=$nio_port" ../bin/uim_api_explorer_conf > /dev/null 2>&1 &
-    running_pid=$?;
+    process_start_logs=$(sudo -u uim_tomcat ./start.sh -p $tomcat_port -n $nio_port -e $use_env);
+    #JAVA_OPTS="-Denv=$use_env -Dport=$tomcat_port -Dnioport=$nio_port" ../bin/uim_api_explorer_conf > /dev/null 2>&1 &
+    #get the exact process ID from the logs process_start_logs
+    running_pid=$(echo $process_start_logs|awk '/^App Starting at ([0-9]+)/{ print $4 }');
     if [[ $running_pid == 0 ]]; then
         echo "Java Process has not be started, check app logs"
         exit 1;
@@ -144,9 +153,12 @@ else
             esac
         done
 fi
+note_main_user;
 #Now format user's input
 format_user_input;
 #Now Invoke application
 invoke_app;
+#now back to the normal user
+lets_re_login;
 #lets log the process ID
 log_process_id;
