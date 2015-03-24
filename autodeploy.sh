@@ -145,7 +145,7 @@ copy_binary_to_aws(){
 install_in_aws(){
     echo "Application Installation process started";
     copy_binary_to_aws;
-    delete_unsuccess_branch;
+    #delete_unsuccess_branch;
     echo -e "\n\n Now you will be logged in to ec2 instance.. Follow below instructions.."
     echo "EC2 Deploy Location: $EC2_DEPLOYMENT_LOC";
     echo "cd $PROJECT_NAME.$NEW_BRANCH/$PROJECT_NAME/scripts/";
