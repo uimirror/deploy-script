@@ -101,7 +101,7 @@ start_java_app(){
                 *) echo "Using The Exisitng Data";;
             esac
 
-            sudo -u uim_tomcat ./start.sh -p $port -n $ni_port -e $env
+            sudo ./ec2javaappstart.sh -p $port -n $ni_port -e $env
             if [ $? -eq 0 ]; then
                 JAVA_INSTANCE_PORTS[$temp_instance_count]=$port;
             elif [ $? -gt 0 ]; then

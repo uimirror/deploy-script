@@ -79,6 +79,7 @@ prepare_to_upload_aws(){
         unzip $BINARY_FILE_NAME;
         rm -rf $BINARY_FILE_NAME;
         cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
+        cp $DEPLOY_SCRIPT_HOME/$EC2_JAVA_APP_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
         prepare_deploy_script;
         zip -r $BINARY_FILE_NAME .;
         rm -rf $PROJECT_NAME;
@@ -91,6 +92,7 @@ prepare_to_upload_aws(){
         cd $DEPLOY_SCRIPT_HOME/$TEMP_REPO;
         ZIP_PATH=$DEPLOY_SCRIPT_HOME/$TEMP_REPO;
         cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT .;
+        cp $DEPLOY_SCRIPT_HOME/$EC2_JAVA_APP_SCRIPT .;
         BINARY_FILE_NAME=$PROJECT_NAME.$NEW_BRANCH.zip;
         prepare_deploy_script;
         zip -r $BINARY_FILE_NAME .;
@@ -329,6 +331,7 @@ JAVA_VERSION="1.8";
 DEPLOY_SCRIPT_HOME=$(pwd);
 TEMP_REPO="temp_repo";
 EC2_DEPLOY_SCRIPT="ec2deploy.sh";
+EC2_JAVA_APP_SCRIPT="ec2javaappstart.sh"
 while getopts ":p:j:r:b:" opt;
     do
         case $opt in
