@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #***********************************************
-#  Name: start.sh
+#  Name: ec2javaappstart.sh
 #  Date: 9 Nov 2014
 #  Usage: ./start.sh -port=8080 -nioport=8443 -env=prod
 #
@@ -70,19 +70,11 @@ lets_sleep(){
 #logging of the process ID
 log_process_id(){
     lets_sleep;
-    grep -q "$running_pid" "$PID_FILE"
-    FOUND_PID_ENTERY=$?
-    if [[ FOUND_PID_ENTERY -eq 0 ]]; then
-        echo "PID entery found, trying to update"
-        sudo sed -i.back "s/\($port : \).*\$/\1$running_pid/" $PID_FILE
-        sudo rm -rf $PID_FILE.back
-    else
-        echo "PID entery was not there, so adding at end"
-        sudo echo "$port :  $running_pid" >> /tmp/uimirror.pid
-    fi
-
-    echo "PID : $running_pid has been logged"
-
+    sudo sed -i.back "/^[0-9]\+ :  $running_pid$/d" $PID_FILE
+    sudo sed -i.back "/^$tomcat_port :  [0-9]\+$/d" $PID_FILE
+    sudo rm -rf $PID_FILE.back;
+    sudo echo "$port :  $running_pid" >> $PID_FILE;
+    echo "PID : $running_pid has been logged";
 }
 format_port(){
     if [[ $port == "" ]]; then
@@ -162,3 +154,4 @@ invoke_app;
 lets_re_login;
 #lets log the process ID
 log_process_id;
+exit 0;

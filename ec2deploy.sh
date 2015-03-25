@@ -102,13 +102,6 @@ start_java_app(){
                 echo "No Enviornment specified using defualt prod";
                 env=prod;
             fi
-            read -rp "Do you want a clean data install?(Y/N)" is_clean_install;
-            shopt -s nocasematch;
-            case "$is_clean_install" in
-                y) echo "Doing a Data Clean..."; sudo ./drop_all_db.sh;;
-                *) echo "Using The Exisitng Data";;
-            esac
-
             sudo -u $MAIN_USER ./ec2javaappstart.sh -p $port -n $ni_port -e $env
             if [ $? -eq 0 ]; then
                 JAVA_INSTANCE_PORTS[$temp_instance_count]=$port;
@@ -131,13 +124,22 @@ install_java_app(){
     stop_started_java_app_if_required;
     printServerAndIp;
 }
+#Clean up any data sets
+clean_data_sets(){
+    read -rp "Do you want a clean data install?(Y/N)" is_clean_install;
+    shopt -s nocasematch;
+    case "$is_clean_install" in
+        y) echo "Doing a Data Clean..."; sudo ./drop_all_db.sh;;
+        *) echo "Using The Exisitng Data";;
+    esac
+}
 
 #Checks if all the pre requesties for this app is already installed or not
 check_java_app_pre_req(){
     read -rp "Do you have all the pre-requesties installed?(Y/N)" PRE_REQ_CHCK;
     shopt -s nocasematch;
     case "$PRE_REQ_CHCK" in
-        y) echo "Great Lets start Deploying App..."; install_java_app;;
+        y) echo "Great Lets start Deploying App...";;
         *) echo "Please install All the pre requesties and re run this script to configure"; exit 1;;
     esac
 }
@@ -145,6 +147,8 @@ configure_java_app(){
     echo "Processing Java Application Configuration"
     java_version_check;
     check_java_app_pre_req;
+    clean_data_sets;
+    install_java_app;
 }
 
 #Application installation
@@ -153,7 +157,7 @@ install_app(){
     if [[ "$PROJECT_TYPE" != "java" ]]; then
         echo "Currently Java application Set up only supported."
         echo "Please configure application manually."
-        exit 0;
+        exit 1;
     else
         configure_java_app;
     fi
