@@ -100,7 +100,7 @@ start_java_app(){
             read -rp "Enter Enviornment to use[dev,prod,qa] :" env;
             if [[ ! "$env" ]]; then
                 echo "No Enviornment specified using defualt prod";
-                env=prod;
+                env="prod";
             fi
             sudo -u $MAIN_USER ./ec2javaappstart.sh -p $port -n $ni_port -e $env
             if [ $? -eq 0 ]; then

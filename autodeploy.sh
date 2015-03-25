@@ -35,7 +35,7 @@ delete_unsuccess_branch(){
     git push origin --delete $NEW_BRANCH
     if [ $? -ne 0 ]; then
         echo "CRITICAL: Unable to delete branch $NEW_BRANCH"
-        exit 12
+        exit 1
     fi
 }
 
@@ -58,6 +58,7 @@ prepare_deploy_script(){
 
     chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT;
     chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_JAVA_APP_SCRIPT;
+    chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_APP_STOP_SCRIPT;
 
     echo "Deployment Descriptor for the EC2 Deployment is completed."
 
@@ -73,7 +74,7 @@ prepare_to_upload_aws(){
         if [ $? -ne 0 ]; then
             echo "CRITICAL: Unable to rename binary $BINARY_FILE_NAME on path $ZIP_PATH"
             delete_unsuccess_branch;
-            exit 12
+            exit 1
         fi
         echo "Adding deploy script to binary";
         cd $ZIP_PATH;
@@ -81,26 +82,28 @@ prepare_to_upload_aws(){
         rm -rf $BINARY_FILE_NAME;
         cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
         cp $DEPLOY_SCRIPT_HOME/$EC2_JAVA_APP_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
+        cp $DEPLOY_SCRIPT_HOME/$EC2_APP_STOP_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
         prepare_deploy_script;
         zip -r $BINARY_FILE_NAME .;
         rm -rf $PROJECT_NAME;
         if [ $? -ne 0 ]; then
             echo "CRITICAL: Unable to add EC2 Deploy Script to binary $BINARY_FILE_NAME on path $ZIP_PATH"
             delete_unsuccess_branch;
-            exit 12
+            exit 1
         fi
     else
         cd $DEPLOY_SCRIPT_HOME/$TEMP_REPO;
         ZIP_PATH=$DEPLOY_SCRIPT_HOME/$TEMP_REPO;
         cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT .;
         cp $DEPLOY_SCRIPT_HOME/$EC2_JAVA_APP_SCRIPT .;
+        cp $DEPLOY_SCRIPT_HOME/$EC2_APP_STOP_SCRIPT .;
         BINARY_FILE_NAME=$PROJECT_NAME.$NEW_BRANCH.zip;
         prepare_deploy_script;
         zip -r $BINARY_FILE_NAME .;
         if [ $? -ne 0 ]; then
             echo "CRITICAL: Unable to create binary for the project $PROJECT_NAME."
             delete_unsuccess_branch;
-            exit 12
+            exit 1
         fi
     fi
 
@@ -137,7 +140,7 @@ copy_binary_to_aws(){
         if [ $? -ne 0 ]; then
             echo "CRITICAL: Failed to scp ${BINARY_FILE_NAME} to dest ${EC2_DEPLOYMENT_LOC}."
             delete_unsuccess_branch;
-            exit 12
+            exit 1
         fi
     else
         echo "Can't copy to remote location, as SCP not found";sayBye;delete_unsuccess_branch;exit 12
@@ -224,7 +227,7 @@ build_project(){
     fi
     set_project_gradle_path;
     echo "Warming to start Build for the Gradle project: $PROJECT_NAME";
-    if [[ ! "$GRADLE_BUILD_PATH" ]]; then echo "Gradle Build Path $GRADLE_BUILD_PATH is invalid."; sayBye; exit 12; fi
+    if [[ ! "$GRADLE_BUILD_PATH" ]]; then echo "Gradle Build Path $GRADLE_BUILD_PATH is invalid."; sayBye; exit 1; fi
     temp_loc=$(pwd);
     cd $GRADLE_BUILD_PATH;
     ./gradlew build distZip;
@@ -242,7 +245,7 @@ readGitCredentials(){
     if [[ ! "$userId" ]]; then
         echo "Invalid GitHub Id";
         sayBye;
-        exit 12;
+        exit 1;
     fi
     while [[ $attempt -lt 3 ]]
         do
@@ -257,7 +260,7 @@ readGitCredentials(){
     if [[ ! "$password" ]]; then
         echo "Invalid GitHub Credentials!!! Attemp Excedded...";
         sayBye;
-        exit 12;
+        exit 1;
     fi
 
     GIT_CRED="$userId:$password";
@@ -274,7 +277,7 @@ git_repo_clone(){
     if [[ $? -eq 0 ]]; then
         echo "Git Clone Completed...";
     else
-        echo "git Clone error, exiting"; sayBye; exit 128;
+        echo "git Clone error, exiting"; sayBye; exit 1;
     fi
 
 #cd .. && rm -rf ./temp_git
@@ -288,7 +291,7 @@ find_and_set_git_path(){
         GIT_PATH=git;
     else
         read -rp "Git Not found, Please enter the path for git: " GIT_PATH;
-        [[ -e "$GIT_PATH" ]] || echo "wrong GIT Path";sayBye; exit 12
+        [[ -e "$GIT_PATH" ]] || echo "wrong GIT Path";sayBye; exit 1
     fi
     #git_pull_count_dir $1 $2 $3 $4 $GIT_PATH
 }
@@ -306,7 +309,7 @@ java_version_check(){
     else
         echo "No java Found Probably Your have not set JAVA_HOME properly.";
         sayBye;
-        exit 12;
+        exit 1;
     fi
 
     if [[ "$_java" ]]; then
@@ -317,7 +320,7 @@ java_version_check(){
         else
             echo "Java version is less than $1 , Please Upgrade Java and try again."
             sayBye;
-            exit 12;
+            exit 1;
         fi
     fi
 }
@@ -333,6 +336,7 @@ DEPLOY_SCRIPT_HOME=$(pwd);
 TEMP_REPO="temp_repo";
 EC2_DEPLOY_SCRIPT="ec2deploy.sh";
 EC2_JAVA_APP_SCRIPT="ec2javaappstart.sh"
+EC2_APP_STOP_SCRIPT="stop.sh"
 while getopts ":p:j:r:b:" opt;
     do
         case $opt in
@@ -352,7 +356,7 @@ while getopts ":p:j:r:b:" opt;
 
 echo "Hello...Starting Auto Deployment....";
 #Now Check for the Repository, branch and clone the same
-if [[ ! "$REPO" ]]; then echo "No Reposoitry Specified." ; usage ; sayBye; exit 12; fi
+if [[ ! "$REPO" ]]; then echo "No Reposoitry Specified." ; usage ; sayBye; exit 1; fi
 if [[ ! "$BRANCH" ]]; then BRANCH="devlop"; fi
 
 echo "Project Type: $PROJECT_TYPE";
