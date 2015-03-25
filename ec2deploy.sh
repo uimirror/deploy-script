@@ -22,6 +22,14 @@ sayBye(){
     echo "Bye!!!";
 }
 
+note_main_user(){
+    MAIN_USER=$(whoami);
+}
+lets_re_login(){
+    sudo -u $MAIN_USER ls>/dev/null;
+    echo "Now Re Login as $(whoami)";
+}
+
 #Java Version Checker
 java_version_check(){
     echo "Checking Java Version $1 ...";
@@ -101,7 +109,7 @@ start_java_app(){
                 *) echo "Using The Exisitng Data";;
             esac
 
-            sudo ./ec2javaappstart.sh -p $port -n $ni_port -e $env
+            sudo -u $MAIN_USER ./ec2javaappstart.sh -p $port -n $ni_port -e $env
             if [ $? -eq 0 ]; then
                 JAVA_INSTANCE_PORTS[$temp_instance_count]=$port;
             elif [ $? -gt 0 ]; then
@@ -156,7 +164,8 @@ set_up_project(){
     echo "Starting project set up.";
     install_app;
 }
-
+#Note the main User
+note_main_user;
 #call project set up to begin installation process
 set_up_project;
 

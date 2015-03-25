@@ -153,7 +153,7 @@ install_in_aws(){
     echo "EC2 Deploy Location: $EC2_DEPLOYMENT_LOC";
     echo "cd $PROJECT_NAME.$NEW_BRANCH/$PROJECT_NAME/scripts/";
     echo "UNZIP will happen on $BINARY_FILE_NAME";
-    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP -t "bash -l -c 'ls;cd $EC2_DEPLOYMENT_LOC;sudo mkdir $PROJECT_NAME.$NEW_BRANCH;sudo unzip $BINARY_FILE_NAME -d $PROJECT_NAME.$NEW_BRANCH/;sudo rm -rf $BINARY_FILE_NAME;cd $PROJECT_NAME.$NEW_BRANCH/$PROJECT_NAME/scripts/;sudo ./$EC2_DEPLOY_SCRIPT;'"
+    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP -t "bash -l -c 'ls;cd $EC2_DEPLOYMENT_LOC;sudo mkdir $PROJECT_NAME.$NEW_BRANCH;sudo unzip $BINARY_FILE_NAME -d $PROJECT_NAME.$NEW_BRANCH/;sudo rm -rf $BINARY_FILE_NAME;cd $PROJECT_NAME.$NEW_BRANCH/$PROJECT_NAME/scripts/;sudo -u $EC2_USER_ID ./$EC2_DEPLOY_SCRIPT;'"
 
 }
 
