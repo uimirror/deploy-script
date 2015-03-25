@@ -27,7 +27,7 @@ in case of any issues while deploying at aws:
 <pre>Manually login to aws client and run ./ec2deploy.sh</pre>
 
 In case to kill any process by pid or port
-<pre>Manually login to aws client, navigate to the project distrubution/scripts and run ./stop.sh -p <port_numers_comma_seperated> -i <pid_comma_seperated></pre>
+<pre>Manually login to aws client, navigate to the project distrubution/scripts and run ./stop.sh -p port_numers_comma_seperated -i pid_comma_seperated</pre>
 
 # Supporting Platform
 
