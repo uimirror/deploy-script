@@ -53,12 +53,22 @@ prepare_deploy_script(){
 
     sed -i.bak "s/^\(SERVER_IP=\).*/\1${EC2_IP}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT
 
+    TEMP_APP_HOME=$EC2_DEPLOYMENT_LOC/$PROJECT_NAME.$NEW_BRANCH/;
+    TEMP_APP_SCRIPT_PATH=$PROJECT_NAME/scripts/;
+
+    sed -i.bak "s/^\(APP_HOME=\).*/\1${TEMP_APP_HOME}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_JAVA_APP_SCRIPT
+
+    sed -i.bak "s/^\(APP_SCRIPT_PATH=\).*/\1${TEMP_APP_SCRIPT_PATH}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_JAVA_APP_SCRIPT
+
     # remove the Back up file
     rm -rf $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT".bak";
+    rm -rf $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_JAVA_APP_SCRIPT".bak";
 
     chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT;
     chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_JAVA_APP_SCRIPT;
     chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_APP_STOP_SCRIPT;
+    chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_APP_UTILITY_SCRIPT;
+    chmod 777 $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_APP_UTILITY_WORKER_SCRIPT;
 
     echo "Deployment Descriptor for the EC2 Deployment is completed."
 
@@ -83,6 +93,8 @@ prepare_to_upload_aws(){
         cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
         cp $DEPLOY_SCRIPT_HOME/$EC2_JAVA_APP_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
         cp $DEPLOY_SCRIPT_HOME/$EC2_APP_STOP_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
+        cp $DEPLOY_SCRIPT_HOME/$EC2_APP_UTILITY_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
+        cp $DEPLOY_SCRIPT_HOME/$EC2_APP_UTILITY_WORKER_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
         prepare_deploy_script;
         zip -r $BINARY_FILE_NAME .;
         rm -rf $PROJECT_NAME;
@@ -97,6 +109,8 @@ prepare_to_upload_aws(){
         cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT .;
         cp $DEPLOY_SCRIPT_HOME/$EC2_JAVA_APP_SCRIPT .;
         cp $DEPLOY_SCRIPT_HOME/$EC2_APP_STOP_SCRIPT .;
+        cp $DEPLOY_SCRIPT_HOME/$EC2_APP_UTILITY_SCRIPT .;
+        cp $DEPLOY_SCRIPT_HOME/$EC2_APP_UTILITY_WORKER_SCRIPT .;
         BINARY_FILE_NAME=$PROJECT_NAME.$NEW_BRANCH.zip;
         prepare_deploy_script;
         zip -r $BINARY_FILE_NAME .;
@@ -337,6 +351,8 @@ TEMP_REPO="temp_repo";
 EC2_DEPLOY_SCRIPT="ec2deploy.sh";
 EC2_JAVA_APP_SCRIPT="ec2javaappstart.sh"
 EC2_APP_STOP_SCRIPT="stop.sh"
+EC2_APP_UTILITY_SCRIPT="utilites.sh"
+EC2_APP_UTILITY_WORKER_SCRIPT="utilityworker.sh"
 while getopts ":p:j:r:b:" opt;
     do
         case $opt in

@@ -17,6 +17,10 @@ PROJECT_NAME=test
 SERVER_IP=test
 SCRIPT_FOLDER=scripts
 
+UTILITY_SCRIPT_LOC='/uim/deploy/scripts'
+UTILITY_SCRIPT_NAME='utilites.sh'
+UTILITY_SCRIPT_WORKER_NAME='utilityworker.sh'
+
 #Prints Bye Message before closing the Script
 sayBye(){
     echo "Bye!!!";
@@ -63,7 +67,7 @@ printServerAndIp(){
     echo "Add Below Entry in the web server for the project $PROJECT_NAME";
     for used_port in "${JAVA_INSTANCE_PORTS[@]}"
         do
-            echo $SERVER_IP:$used_port/'127.0.0.1':$used_port;
+            echo "$SERVER_IP:$used_port or 127.0.0.1:$used_port";
         done
 
 }
@@ -74,7 +78,7 @@ stop_started_java_app_if_required(){
         for used_port in "${JAVA_INSTANCE_PORTS[@]}"
             do
                 echo "Stoping Server from port ${used_port}";
-                sudo -u uim_tomcat ./stop.sh -p ${used_port}
+                sudo -u uim_tomcat ./stop.sh --port ${used_port}
             done
         exit 2;
     fi
@@ -168,10 +172,26 @@ set_up_project(){
     echo "Starting project set up.";
     install_app;
 }
+#Moves the utility Scripts to the UIM/Script locations
+move_utility_scripts(){
+
+    if [ ! -d "$UTILITY_SCRIPT_LOC" ]; then
+        sudo mkdir $UTILITY_SCRIPT_LOC;
+    fi
+    sudo mv -f $UTILITY_SCRIPT_NAME $UTILITY_SCRIPT_LOC/;
+    sudo mv -f $UTILITY_SCRIPT_WORKER_NAME $UTILITY_SCRIPT_LOC/;
+    sudo chmod 777 $UTILITY_SCRIPT_LOC/$UTILITY_SCRIPT_WORKER_NAME;
+    sudo chmod 777 $UTILITY_SCRIPT_LOC/$UTILITY_SCRIPT_NAME;
+    echo "Utility Scripts are placed at $UTILITY_SCRIPT_LOC/"
+
+}
 #Note the main User
 note_main_user;
 #call project set up to begin installation process
 set_up_project;
+
+#Moves the scripts for utility work
+move_utility_scripts;
 
 echo "Project $PROJECT_NAME deployment completed..."
 

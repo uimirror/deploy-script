@@ -7,6 +7,9 @@
 #
 #**********************************************
 
+APP_HOME=test
+APP_SCRIPT_PATH=test
+
 #To Show the message
 usage(){
 
@@ -70,10 +73,10 @@ lets_sleep(){
 #logging of the process ID
 log_process_id(){
     lets_sleep;
-    sudo sed -i.back "/^[0-9]\+ :  $running_pid$/d" $PID_FILE
-    sudo sed -i.back "/^$tomcat_port :  [0-9]\+$/d" $PID_FILE
+    sudo sed -i.back "/^[0-9]\+\t$running_pid\t.*/d" $PID_FILE
+    sudo sed -i.back "/^$tomcat_port\t[0-9]\+\t.*/d" $PID_FILE
     sudo rm -rf $PID_FILE.back;
-    sudo echo "$port :  $running_pid" >> $PID_FILE;
+    sudo echo -e "$tomcat_port\t$running_pid\t$nio_port\t$use_env\t$APP_HOME\t\t\t$APP_SCRIPT_PATH" >> $PID_FILE;
     echo "PID : $running_pid has been logged";
 }
 format_port(){

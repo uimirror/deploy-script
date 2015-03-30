@@ -14,21 +14,26 @@
 
 #To Show the message
 usage(){
-    echo "Usage : $0 -p <port_to_find_pid> -i <process_id>
-    port_to_find_pid : Port id to kill
-    process_id : process id to kill
-    When user provided process id, then irrespective of its found or not in the PID file but it will kill the process"
+    echo "Usage : $0 [--port <port_ids>] [--pid <pids>] [-h | --help] to stop any process or port               mapped based apps.
+
+    Where:
+        --port port numbers to be get cleaned i.e 8080,8181,8282
+        --pid  pid numbers to be get cleaned/killed i.e 1234,5678
+        -h|--help to understand the usage and help information
+
+    Error Codes :
+        1- In case of error
+        0- In case of sucess
+        "
 }
 
 #Resloves the pid given in the pid parameter to the process id's
 resolve_PID_from_port(){
     OIFS=$IFS;
     IFS=",";
-
     for x in $PORT
         do
-            exp=$x' : ';
-            temp_found_pid=$((grep -Po "(?<=^$exp).*" $PID_FILE)|xargs);
+            temp_found_pid=$((grep -P "$x\t[0-9]+\t.*" $PID_FILE|awk '{print $2}')|xargs);
             if [[ "$temp_found_pid" ]]; then
                 if [[ "$PID_TO_KILL" ]]; then
                     PID_TO_KILL=$PID_TO_KILL' '$temp_found_pid;
@@ -64,9 +69,15 @@ preety_format_pid(){
 clear_pid_entries(){
     OIFS=$IFS;
     IFS=" ";
+    APP_PATH='';
     for x in $PID_TO_KILL
         do
-            sudo sed -i.back "/^[0-9]\+ :  $x/d" $PID_FILE
+            if [[ "$APP_PATH" ]]; then
+                APP_PATH=$APP_PATH' '$(grep -P "^[0-9]+\t$x\t.*" $PID_FILE |awk '{print $3}');
+            else
+                APP_PATH=$(grep -P "^[0-9]+\t$x\t.*" $PID_FILE |awk '{print $3}');
+            fi
+            sudo sed -i.back "/^[0-9]\+\t$x\t.*/d" $PID_FILE
         done
     sudo rm -rf $PID_FILE.back
     echo "Process ID has been cleared from the log"
@@ -85,23 +96,37 @@ kill_processes(){
 
 PID_FILE=/tmp/uimirror.pid;
 PID_TO_KILL='';
-if [[ $1 == "-h" || $1 == --help ]]
-    then
-        usage
-    else
-    while getopts ":p:i:" opt;
-        do
-        case $opt in
-            p) PORT=$OPTARG;;
-            i) PID=$OPTARG;;
-            \?) echo "Invalid options, see the usage";
-            usage;
-            sayBye;
-            exit 1;
+#Main
+while [ "$1" != "" ]; do
+    case $1 in
+        --port )
+            shift
+            PORT=$1;
+            if [[ "$PID" ]]; then
+                echo "Please Specify either Port or PID comma seperated."
+                usage;
+                exit 1;
+            fi
             ;;
-        esac
-        done
-fi
+        --pid )
+            shift
+            PID=$1;
+            if [[ "$PORT" ]]; then
+                echo "Please Specify either Port or PID comma seperated."
+                usage;
+                exit 1;
+            fi
+            ;;
+        -h | --help )
+            usage
+            exit
+            ;;
+        * )
+            usage
+            exit 1
+    esac
+    shift
+done
 
 echo "Hello, I got request to kill process";
 
@@ -113,5 +138,10 @@ fi
 if [[ "$PID" ]]; then
     preety_format_pid;
 fi
+
 kill_processes;
+
+#Now clean the PID Entery
+clear_pid_entries;
+
 echo "I have stoped all identified process. I am done!!! Bye!"
