@@ -32,6 +32,7 @@ sayBye(){
 }
 
 process_local_system(){
+    if [ ! -f "$WORKER_SCRIPT" ]; then echo "PID Mapping File Not Found!!! Abroating"; exit 1; fi;
     if [[ "$PORT" ]]; then
         sudo ./$WORKER_SCRIPT --port $PORT --pidfile $PID_FILE_LOC
     else
@@ -42,9 +43,9 @@ process_local_system(){
 
 process_remote_system(){
     if [[ "$PORT" ]]; then
-        ssh -i $SSH_KEY_LOC $USER@$REMOTE_IP -t "bash -l -c 'sudo ./$WORKER_SCRIPT --port $PORT --pidfile $PID_FILE_LOC;'"
+        ssh -i $SSH_KEY_LOC $USER@$REMOTE_IP -t "bash -l -c 'if [ ! -f $WORKER_SCRIPT ]; then echo PID Mapping File Not Found!!! Abroating; exit 1; fi; sudo ./$WORKER_SCRIPT --port $PORT --pidfile $PID_FILE_LOC;'"
     else
-        ssh -i $SSH_KEY_LOC $USER@$REMOTE_IP -t "bash -l -c 'sudo ./$WORKER_SCRIPT --pid $PID --pidfile $PID_FILE_LOC;'"
+        ssh -i $SSH_KEY_LOC $USER@$REMOTE_IP -t "bash -l -c 'if [ ! -f $WORKER_SCRIPT ]; then echo PID Mapping File Not Found!!! Abroating; exit 1; fi; sudo ./$WORKER_SCRIPT --pid $PID --pidfile $PID_FILE_LOC;'"
     fi
 
 }
