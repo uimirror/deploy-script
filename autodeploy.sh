@@ -12,17 +12,35 @@
 # cp -rv ./autodeploy.sh /home/kumarprd
 usage(){
 
-    echo "Usage : $0 -p <project_type> -j <java_version> -r <repo> -b <branch>
-    E.g. : ./autodeploy.sh -p java -j 1.8 -r uimirror/rtp.git -b devlop
-    project_type: Specifies which type of Project it is, i.e [java, other], default is java
-    java_version: If Project type is Java, which java version to use, default is 1.8
-    repo : path too git repo (e.g. uimirror/rtp.git)
-    branch : devlop OR master (default is devlop if not mentioned)"
+    echo "Usage : $0 [-r|--repo <repo_path>] [-b|--branch <branch_name>] [--javaversion <java_version>] [--projecttype <type_of_project i.e java or other>] [-h|--  help] --Program to perform suto check out and maintain versioning and deploye to the AWS EC2 instance.
+
+        Where:
+            -r|--repo       Specify the repository path from where project will be check out
+            -b|--branch     Specify the branch name from which branch project will be check out
+            --javaversion   If project is of type then what version of java it uses.
+            --projecttype   Specify the type of project it can be java ,php, python etc
+            -h|--help       For getting Usage information
+
+        Note:
+            Currently it supports auto deployment of gradle java projects.
+            every project should have a standard package structure
+
+        Error Codes:
+            1- In case of any error
+            0- In case of sucess deployment.
+
+    "
 }
 
 #Prints Bye Message before closing the Script
 sayBye(){
     echo "Bye!!!";
+}
+
+#Grant Sudo access to the destination
+grant_access_destination(){
+    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP "sudo chown -R $EC2_USER_ID:$EC2_USER_ID $EC2_DEPLOYMENT_LOC"
+    echo "Granted permision to $EC2_DEPLOYMENT_LOC"
 }
 
 #Delete the Branch which was unsuccessful while installing
@@ -53,12 +71,13 @@ prepare_deploy_script(){
 
     sed -i.bak "s/^\(SERVER_IP=\).*/\1${EC2_IP}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT
 
-    TEMP_APP_HOME=$EC2_DEPLOYMENT_LOC/$PROJECT_NAME.$NEW_BRANCH/;
-    TEMP_APP_SCRIPT_PATH=$PROJECT_NAME/scripts/;
+    TEMP_APP_HOME="$EC2_DEPLOYMENT_LOC/$PROJECT_NAME.$NEW_BRANCH/";
 
-    sed -i.bak "s/^\(APP_HOME=\).*/\1${TEMP_APP_HOME}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_JAVA_APP_SCRIPT
+    TEMP_APP_SCRIPT_PATH="$PROJECT_NAME/scripts/";
 
-    sed -i.bak "s/^\(APP_SCRIPT_PATH=\).*/\1${TEMP_APP_SCRIPT_PATH}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_JAVA_APP_SCRIPT
+    sed -i.bak "s/^\(APP_HOME=\).*/\1${TEMP_APP_HOME//\//\/}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_JAVA_APP_SCRIPT
+
+    sed -i.bak "s/^\(APP_SCRIPT_PATH=\).*/\1${TEMP_APP_SCRIPT_PATH//\//\/}/" $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_JAVA_APP_SCRIPT
 
     # remove the Back up file
     rm -rf $ZIP_PATH/$PROJECT_NAME/scripts/$EC2_DEPLOY_SCRIPT".bak";
@@ -76,7 +95,6 @@ prepare_deploy_script(){
 
 #prepeare ZIP to upload to aws
 prepare_to_upload_aws(){
-    echo "Preparing Distrubutions for AWS";
     if [[ "$PROJECT_TYPE" == "java" ]]; then
         ZIP_PATH=$GRADLE_BUILD_PATH/build/distributions;
         BINARY_FILE_NAME=$PROJECT_NAME.$NEW_BRANCH.zip;
@@ -86,9 +104,9 @@ prepare_to_upload_aws(){
             delete_unsuccess_branch;
             exit 1
         fi
-        echo "Adding deploy script to binary";
+        echo "Updateing deploy script to binary";
         cd $ZIP_PATH;
-        unzip $BINARY_FILE_NAME;
+        unzip $BINARY_FILE_NAME > /dev/null 2>&1;
         rm -rf $BINARY_FILE_NAME;
         cp $DEPLOY_SCRIPT_HOME/$EC2_DEPLOY_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
         cp $DEPLOY_SCRIPT_HOME/$EC2_JAVA_APP_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
@@ -96,7 +114,7 @@ prepare_to_upload_aws(){
         cp $DEPLOY_SCRIPT_HOME/$EC2_APP_UTILITY_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
         cp $DEPLOY_SCRIPT_HOME/$EC2_APP_UTILITY_WORKER_SCRIPT $ZIP_PATH/$PROJECT_NAME/scripts/;
         prepare_deploy_script;
-        zip -r $BINARY_FILE_NAME .;
+        zip -q -r $BINARY_FILE_NAME .;
         rm -rf $PROJECT_NAME;
         if [ $? -ne 0 ]; then
             echo "CRITICAL: Unable to add EC2 Deploy Script to binary $BINARY_FILE_NAME on path $ZIP_PATH"
@@ -113,7 +131,7 @@ prepare_to_upload_aws(){
         cp $DEPLOY_SCRIPT_HOME/$EC2_APP_UTILITY_WORKER_SCRIPT .;
         BINARY_FILE_NAME=$PROJECT_NAME.$NEW_BRANCH.zip;
         prepare_deploy_script;
-        zip -r $BINARY_FILE_NAME .;
+        zip -q -r $BINARY_FILE_NAME .;
         if [ $? -ne 0 ]; then
             echo "CRITICAL: Unable to create binary for the project $PROJECT_NAME."
             delete_unsuccess_branch;
@@ -125,22 +143,24 @@ prepare_to_upload_aws(){
 
 }
 
-#Grant Sudo access to the destination
-grant_access_destination(){
-    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP "sudo chown -R jayaram:jayaram $EC2_DEPLOYMENT_LOC"
-    echo "Granted permision to $EC2_DEPLOYMENT_LOC"
-
+#validate EC2 details such as IP, security key, deployment location and user id
+validate_aws_details(){
+    if [[ ! "$EC2_IP" || ! "$EC2_SECURITY_KEY" || ! "$EC2_DEPLOYMENT_LOC" || ! "$EC2_USER_ID" ]]; then
+        echo "EC2 Details are Invalid, stopping the process";
+        delete_unsuccess_branch;
+        exit 1;
+    fi
 }
 
 #Copy the binary to AWS
 copy_binary_to_aws(){
 
-    echo -e "\n Pushing build file to EC2....\n";
-
     read -rp "Enter IP of EC2 instance :" EC2_IP
     read -rp "Give path to the ec2 security key :" EC2_SECURITY_KEY
     read -rp "Give full path in the ec2 to which file will be copied :" EC2_DEPLOYMENT_LOC
     read -rp "Enter username to connect to ec2 instance :" EC2_USER_ID
+    validate_aws_details;
+
     prepare_to_upload_aws;
 
     if type -p scp; then
@@ -163,14 +183,11 @@ copy_binary_to_aws(){
 
 #This will Create Zip, upload and intsall into aws
 install_in_aws(){
-    echo "Application Installation process started";
+    echo "Application Distrubution is getting ready to Ship to AWS EC2";
     copy_binary_to_aws;
-    #delete_unsuccess_branch;
-    echo -e "\n\n Now you will be logged in to ec2 instance.. Follow below instructions.."
-    echo "EC2 Deploy Location: $EC2_DEPLOYMENT_LOC";
-    echo "cd $PROJECT_NAME.$NEW_BRANCH/$PROJECT_NAME/scripts/";
-    echo "UNZIP will happen on $BINARY_FILE_NAME";
+    echo -e "\nNow I will run on the Remote Machiene ..."
     ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP -t "bash -l -c 'ls;cd $EC2_DEPLOYMENT_LOC;sudo mkdir $PROJECT_NAME.$NEW_BRANCH;sudo unzip $BINARY_FILE_NAME -d $PROJECT_NAME.$NEW_BRANCH/;sudo rm -rf $BINARY_FILE_NAME;cd $PROJECT_NAME.$NEW_BRANCH/$PROJECT_NAME/scripts/;sudo -u $EC2_USER_ID ./$EC2_DEPLOY_SCRIPT;'"
+    echo -e "\nI am done with application deployment.";
 
 }
 
@@ -244,8 +261,15 @@ build_project(){
     if [[ ! "$GRADLE_BUILD_PATH" ]]; then echo "Gradle Build Path $GRADLE_BUILD_PATH is invalid."; sayBye; exit 1; fi
     temp_loc=$(pwd);
     cd $GRADLE_BUILD_PATH;
-    ./gradlew build distZip;
-    echo "$PROJECT_NAME, Build Completed";
+    echo "Building ..."
+    BUILD_LOG=$(./gradlew build distZip);
+    if [ $? -eq 0 ]; then
+        echo "$PROJECT_NAME Build Completed";
+    else
+        echo "Build Failed, look at logs it might help you to debug:"
+        echo "$BUILD_LOG";
+        sayBye; exit 1;
+    fi
     #Move Back to the main repo location
     cd $temp_loc;
     repo_loc=$(ls);
@@ -283,7 +307,7 @@ readGitCredentials(){
 
 #Clone The Repository using Git
 git_repo_clone(){
-    echo "\nCloning Branch: $BRANCH from $REPO";
+    echo "Cloning Branch: $BRANCH from $REPO";
     [[ -e ./$TEMP_REPO ]] && rm -rf ./$TEMP_REPO
     mkdir ./$TEMP_REPO ; cd ./$TEMP_REPO
     readGitCredentials;
@@ -293,8 +317,6 @@ git_repo_clone(){
     else
         echo "git Clone error, exiting"; sayBye; exit 1;
     fi
-
-#cd .. && rm -rf ./temp_git
 }
 
 #Find or Set the Git Path
@@ -307,7 +329,6 @@ find_and_set_git_path(){
         read -rp "Git Not found, Please enter the path for git: " GIT_PATH;
         [[ -e "$GIT_PATH" ]] || echo "wrong GIT Path";sayBye; exit 1
     fi
-    #git_pull_count_dir $1 $2 $3 $4 $GIT_PATH
 }
 
 #Java Version Checker
@@ -339,10 +360,16 @@ java_version_check(){
     fi
 }
 
+validate_and_assign_default(){
+    if [[ ! "$REPO" ]]; then echo "No Reposoitry Specified." ; usage ; sayBye; exit 1; fi
+    if [[ ! "$BRANCH" ]]; then BRANCH="devlop"; fi
+    if [[ "$PROJECT_TYPE" == "java" ]]; then
+        java_version_check $JAVA_VERSION;
+    fi
+    #Now Check Git, and set the Git Path
+    find_and_set_git_path;
+}
 
-if [[ $1 == "-h" || $1 == --help || $1 == "-help" ]]; then
-    usage;
-fi
 #Default project type is java
 PROJECT_TYPE='java';
 JAVA_VERSION="1.8";
@@ -353,36 +380,40 @@ EC2_JAVA_APP_SCRIPT="ec2javaappstart.sh"
 EC2_APP_STOP_SCRIPT="stop.sh"
 EC2_APP_UTILITY_SCRIPT="utilites.sh"
 EC2_APP_UTILITY_WORKER_SCRIPT="utilityworker.sh"
-while getopts ":p:j:r:b:" opt;
-    do
-        case $opt in
-        r) REPO=$OPTARG;;
-        b) BRANCH=$OPTARG;;
-        j) JAVA_VERSION=$OPTARG;;
-        p) PROJECT_TYPE='other';;
-        \?) echo "Invalid options."; usage ;sayBye;
-        exit 1;
-        ;;
 
-        #:) echo "Option -$OPTARG requires an argument." >&2
-        #           exit 1
-        #           ;;
-        esac
-    done
-
-echo "Hello...Starting Auto Deployment....";
+#Main
+while [ "$1" != "" ]; do
+    case $1 in
+        -r | --repo )
+            shift
+            REPO=$1;
+            ;;
+        -b | --branch )
+            shift
+            BRANCH=$1;
+            ;;
+        --javaversion )
+            shift
+            JAVA_VERSION=$1;
+            ;;
+        --projecttype )
+            shift
+            PROJECT_TYPE=$1;
+            ;;
+        -h | --help )
+            usage
+            exit
+            ;;
+        * )
+            usage
+            exit 1
+    esac
+    shift
+done
+now=$(date +"%T");
+echo "Hello...Starting Auto Deployment of Project Type: $PROJECT_TYPE.... @ $now";
 #Now Check for the Repository, branch and clone the same
-if [[ ! "$REPO" ]]; then echo "No Reposoitry Specified." ; usage ; sayBye; exit 1; fi
-if [[ ! "$BRANCH" ]]; then BRANCH="devlop"; fi
-
-echo "Project Type: $PROJECT_TYPE";
-
-if [[ "$PROJECT_TYPE" == "java" ]]; then
-    java_version_check $JAVA_VERSION;
-fi
-
-#Now Check Git, and set the Git Path
-find_and_set_git_path;
+validate_and_assign_default;
 
 #Clone Repository
 git_repo_clone;
@@ -394,4 +425,8 @@ build_project;
 git_push_new_branch;
 
 #Now Install in AWS
-install_in_aws
+install_in_aws;
+now=$(date +"%T");
+echo "Auto Deployment of Project: $PROJECT_NAME is completed.... @ $now"
+sayBye;
+exit 0;

@@ -58,7 +58,7 @@ get_confirmed_pid_file_loc(){
     read -rp "I am going to look at $PID_FILE_LOC for PID-Port mapping, please confirm (Y/N)?" PID_FILE_LOC_CONF;
     shopt -s nocasematch;
     case "$PID_FILE_LOC_CONF" in
-        y) check_pid_file_exists;;;
+        y) check_pid_file_exists;;
         *) get_pid_file_mapping;;
     esac
 }
@@ -183,6 +183,7 @@ while [ "$1" != "" ]; do
         * )
             usage
             exit 1
+            ;;
     esac
     shift
 done
@@ -223,7 +224,7 @@ until [ "$selection" = "0" ]; do
         6 ) start_process;;
         7 ) stop_and_sclen_process;;
         8 ) echo "asgga";;
-        9 ) print_jvm_active_thread;
+        9 ) print_jvm_active_thread;;
         0 ) exit ;;
         * ) echo "Please Enter 1, 2, 3, 4, 5, 6, 7, 8, 9 or 0"; press_enter
     esac
