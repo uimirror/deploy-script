@@ -72,8 +72,8 @@ resolve_pid_port_map(){
         PID=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $2}');
         PORT=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $1}');
     else
-        APP_PATH=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $3}');
-        APP_SCRIPT_PATH=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $4}');
+        APP_PATH=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $5}');
+        APP_SCRIPT_PATH=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $6}');
         NIO_PORT=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $3}');
         ENV=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $4}');
         PID=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $2}');
