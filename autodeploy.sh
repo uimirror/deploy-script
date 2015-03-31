@@ -186,7 +186,7 @@ install_in_aws(){
     echo "Application Distrubution is getting ready to Ship to AWS EC2";
     copy_binary_to_aws;
     echo -e "\nNow I will run on the Remote Machiene ..."
-    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP -t "bash -l -c 'ls;cd $EC2_DEPLOYMENT_LOC;sudo mkdir $PROJECT_NAME.$NEW_BRANCH;sudo unzip $BINARY_FILE_NAME -d $PROJECT_NAME.$NEW_BRANCH/;sudo rm -rf $BINARY_FILE_NAME;cd $PROJECT_NAME.$NEW_BRANCH/$PROJECT_NAME/scripts/;sudo -u $EC2_USER_ID ./$EC2_DEPLOY_SCRIPT;'"
+    ssh -i $EC2_SECURITY_KEY $EC2_USER_ID@$EC2_IP -t "bash -l -c 'ls;cd $EC2_DEPLOYMENT_LOC;sudo mkdir $PROJECT_NAME.$NEW_BRANCH;sudo unzip $BINARY_FILE_NAME -d $PROJECT_NAME.$NEW_BRANCH/  > /dev/null 2>&1;sudo rm -rf $BINARY_FILE_NAME;cd $PROJECT_NAME.$NEW_BRANCH/$PROJECT_NAME/scripts/;sudo -u $EC2_USER_ID ./$EC2_DEPLOY_SCRIPT;'"
     echo -e "\nI am done with application deployment.";
 
 }
