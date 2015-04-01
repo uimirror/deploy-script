@@ -43,55 +43,7 @@ print_actieve_connections(){
     echo "RAW Network Statics: ";
     echo "$(sudo netstat --statistics --raw)"
 }
-#Clears the previous output and process
-function press_enter
-{
-    echo ""
-    echo -n "Press Enter to continue"
-    read
-    clear
-}
-check_pid_file_exists(){
-    if [ ! -f "$PID_FILE_LOC" ]; then echo "PID Mapping File Not Found!!! Abroating"; exit 1; fi
-}
-#reads the file mapping location from user
-get_pid_file_mapping(){
-    read -rp "Ok, Enter the Port-PID Mapping File Location: " PID_FILE_LOC;
-    check_pid_file_exists;
-}
-#Confirm the PID file location
-get_confirmed_pid_file_loc(){
-    read -rp "I am going to look at $PID_FILE_LOC for PID-Port mapping, please confirm (Y/N)?" PID_FILE_LOC_CONF;
-    shopt -s nocasematch;
-    case "$PID_FILE_LOC_CONF" in
-        y) check_pid_file_exists;;
-        *) get_pid_file_mapping;;
-    esac
-}
-#Resolve PID, Port, App Home and App Script Path
-resolve_pid_port_map(){
-    if [[ "$PORT" ]]; then
-        APP_PATH=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $5}');
-        APP_SCRIPT_PATH=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $6}');
-        NIO_PORT=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $3}');
-        ENV=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $4}');
-        PID=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $2}');
-        PORT=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $1}');
-    else
-        APP_PATH=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $5}');
-        APP_SCRIPT_PATH=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $6}');
-        NIO_PORT=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $3}');
-        ENV=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $4}');
-        PID=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $2}');
-        PORT=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $1}');
-    fi
 
-    if [[ ! "$PORT" || ! "$PID" ]]; then
-        echo "Not able to find any mapping between PID-Port and App home";
-        exit 1;
-    fi
-
-}
 #Starts the process
 start_process(){
     temp_path=$(pwd);
@@ -158,6 +110,58 @@ print_free_stat(){
 print_jvm_active_thread(){
     echo "Active Thread for the process $PID : $(ps huH p $PID | wc -l)";
 }
+#Check PID file existance
+check_pid_file_exists(){
+    if [ ! -f "$PID_FILE_LOC" ]; then echo "PID Mapping File Not Found!!! Abroating"; exit 1; fi
+}
+#reads the file mapping location from user
+get_pid_file_mapping(){
+    read -rp "Ok, Enter the Port-PID Mapping File Location: " PID_FILE_LOC;
+    check_pid_file_exists;
+}
+#Confirm the PID file location
+get_confirmed_pid_file_loc(){
+    read -rp "I am going to look at $PID_FILE_LOC for PID-Port mapping, please confirm (Y/N)?" PID_FILE_LOC_CONF;
+    shopt -s nocasematch;
+    case "$PID_FILE_LOC_CONF" in
+        y) check_pid_file_exists;;
+        *) get_pid_file_mapping;;
+    esac
+}
+#Resolve PID, Port, App Home and App Script Path
+resolve_pid_port_map(){
+    if [[ "$PORT" ]]; then
+        APP_PATH=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $5}');
+        APP_SCRIPT_PATH=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $6}');
+        NIO_PORT=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $3}');
+        ENV=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $4}');
+        PID=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $2}');
+        PORT=$(grep -P "^$PORT\t[0-9]+\t.*" $PID_FILE_LOC |awk '{print $1}');
+    else
+        APP_PATH=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $5}');
+        APP_SCRIPT_PATH=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $6}');
+        NIO_PORT=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $3}');
+        ENV=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $4}');
+        PID=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $2}');
+        PORT=$(grep -P "^[0-9]+\t$PID\t.*" $PID_FILE_LOC |awk '{print $1}');
+    fi
+
+    if [[ ! "$PORT" || ! "$PID" ]]; then
+        echo "Not able to find any mapping between PID-Port and App home";
+        exit 1;
+    fi
+
+}
+
+#Clears the previous output and process
+function press_enter
+{
+    echo ""
+    echo -n "Press Enter to continue"
+    read
+    clear
+}
+
 #First clear the screen
 press_enter;
 
@@ -238,11 +242,9 @@ until [ "$selection" = "0" ]; do
         5 ) stop_process ; press_enter;;
         6 ) start_process ; press_enter;;
         7 ) stop_and_sclen_process ; press_enter;;
-        8 ) echo "asgga";;
+        8 ) print_actieve_connections; press_enter;;
         9 ) print_jvm_active_thread ; press_enter;;
         0 ) exit ;;
         * ) echo "Please Enter 1, 2, 3, 4, 5, 6, 7, 8, 9 or 0"; press_enter
     esac
 done
-
-
