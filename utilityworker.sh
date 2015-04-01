@@ -76,7 +76,7 @@ stop_and_sclen_process(){
     read -rp "Do you really want to delete the binaries, please confirm (Y/N)?" BINARY_REMOVE_CONF;
     shopt -s nocasematch;
     case "$BINARY_REMOVE_CONF" in
-        y) sudo rm -rf $APP_PATH;echo "Project Deleted, Please Unmap from webserver for the port $PORT";sayBye;exit 0 ;;
+        y) sudo rm -rf $APP_PATH;echo "Project Deleted, Please Unmap from webserver for the port $PORT";exit 0 ;;
     esac
 
 }
