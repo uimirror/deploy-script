@@ -36,7 +36,13 @@ PORT=;
 PID_FILE_LOC='/tmp/uimirror.pid';
 APP_PATH='';
 APP_SCRIPT_PATH='';
-
+#Prints the network stats
+print_actieve_connections(){
+    echo "Inccoming/ Outgoing Connection Details: ";
+    echo "$(sudo netstat -an | grep :$PORT)"
+    echo "RAW Network Statics: ";
+    echo "$(sudo netstat --statistics --raw)"
+}
 #Clears the previous output and process
 function press_enter
 {
@@ -88,7 +94,10 @@ resolve_pid_port_map(){
 }
 #Starts the process
 start_process(){
-    sudo ./$APP_PATH$APP_SCRIPT_PATH'ec2javaappstart.sh' -p $PORT -n $NIO_PORT -e $ENV;
+    temp_path=$(pwd);
+    cd $APP_PATH$APP_SCRIPT_PATH;
+    sudo ./'ec2javaappstart.sh' -p $PORT -n $NIO_PORT -e $ENV;
+    cd $temp_path;
     lets_re_login;
     PID='';
     echo "Reloacting PID entery"
@@ -105,9 +114,9 @@ restart_process(){
 #This will call the stop.sh to stop the process
 stop_process(){
     echo "sudo $APP_PATH$APP_SCRIPT_PATH --pid $PID";
-    sudo ./$APP_PATH$APP_SCRIPT_PATH'stop.sh' --pid $PID;
+    sudo $APP_PATH$APP_SCRIPT_PATH'stop.sh' --pid $PID;
     lets_re_login;
-    echo "Process Stopped"
+    echo "Process $PID Stopped"
 }
 #Stops the process and delete the Binary
 stop_and_sclen_process(){
@@ -127,17 +136,23 @@ print_up_time(){
 }
 #Prints Disk Statics
 print_disk_stack(){
-    echo "Overall Disk Stat:";echo "$(sudo df -H -g)";
+    echo "Overall Disk Stat:";echo "$(sudo df -H)";
     read -rp "Do you want the disk space of a specific path(Y/N)?" DF_LOC_CONF;
     shopt -s nocasematch;
     case "$DF_LOC_CONF" in
-    y) read -rp "Enter the path: " DF_LOC_PATH; echo "Disk Stat for $DF_LOC_PATH :"; echo "$(sudo df -H -g -h $DF_LOC_PATH)";;
+    y) read -rp "Enter the path: " DF_LOC_PATH; echo "Disk Stat for $DF_LOC_PATH :"; echo "$(sudo df -H -h $DF_LOC_PATH)";;
 esac
 }
 #Print Free Memory Statics
 print_free_stat(){
     echo "Free Memory Statics: ";
-    echo "$(top -l 1 | head -n 10 | grep PhysMem | sed 's/, /\n         /g')";
+    #Physical Memory Statics
+    #echo "$(top -l 1 | head -n 10 | grep PhysMem | sed 's/, /\n         /g')";
+    echo "$(egrep --color 'Mem|Cache|Swap' /proc/meminfo)"
+    echo "VM Process Statics: ";
+    echo "$(vmstat -S 'M')";
+    echo "VM Disk Statics: ";
+    echo "$(vmstat -S 'M' -d)";
 }
 #Prints JVM Actieve Thread count
 print_jvm_active_thread(){
@@ -218,13 +233,13 @@ until [ "$selection" = "0" ]; do
     case $selection in
         1 ) print_disk_stack ; press_enter ;;
         2 ) print_free_stat ; press_enter ;;
-        3 ) print_up_time;;
-        4 ) echo restart_process;;
-        5 ) stop_process;;
-        6 ) start_process;;
-        7 ) stop_and_sclen_process;;
+        3 ) print_up_time ; press_enter;;
+        4 ) restart_process ; press_enter;;
+        5 ) stop_process ; press_enter;;
+        6 ) start_process ; press_enter;;
+        7 ) stop_and_sclen_process ; press_enter;;
         8 ) echo "asgga";;
-        9 ) print_jvm_active_thread;;
+        9 ) print_jvm_active_thread ; press_enter;;
         0 ) exit ;;
         * ) echo "Please Enter 1, 2, 3, 4, 5, 6, 7, 8, 9 or 0"; press_enter
     esac

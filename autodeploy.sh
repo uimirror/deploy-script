@@ -378,7 +378,7 @@ TEMP_REPO="temp_repo";
 EC2_DEPLOY_SCRIPT="ec2deploy.sh";
 EC2_JAVA_APP_SCRIPT="ec2javaappstart.sh"
 EC2_APP_STOP_SCRIPT="stop.sh"
-EC2_APP_UTILITY_SCRIPT="utilites.sh"
+EC2_APP_UTILITY_SCRIPT="utilities.sh"
 EC2_APP_UTILITY_WORKER_SCRIPT="utilityworker.sh"
 
 #Main

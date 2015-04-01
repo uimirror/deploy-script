@@ -18,7 +18,7 @@ SERVER_IP=test
 SCRIPT_FOLDER=scripts
 
 UTILITY_SCRIPT_LOC='/uim/deploy/scripts'
-UTILITY_SCRIPT_NAME='utilites.sh'
+UTILITY_SCRIPT_NAME='utilities.sh'
 UTILITY_SCRIPT_WORKER_NAME='utilityworker.sh'
 
 #Prints Bye Message before closing the Script
