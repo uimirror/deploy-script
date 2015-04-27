@@ -33,7 +33,7 @@ lets_re_login(){
 
 PID=;
 PORT=;
-PID_FILE_LOC='/tmp/uimirror.pid';
+PID_FILE_LOC='/uim/deploy/extra/uimirror.pid';
 APP_PATH='';
 APP_SCRIPT_PATH='';
 #Prints the network stats

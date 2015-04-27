@@ -128,7 +128,7 @@ invoke_app(){
     echo "App starting with process ID $running_pid";
 
 }
-PID_FILE=/tmp/uimirror.pid
+PID_FILE=/uim/deploy/extra/uimirror.pid
 if [[ $1 == "-h" || $1 == --help ]]; then
   usage
 else

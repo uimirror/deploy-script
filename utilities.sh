@@ -73,7 +73,7 @@ USER=;
 PID=;
 PORT=;
 SSH_KEY_LOC=;
-PID_FILE_LOC='/tmp/uimirror.pid';
+PID_FILE_LOC='/uim/deploy/extra/uimirror.pid';
 num_re='^[0-9]+$';
 WORKER_SCRIPT='utilityworker.sh';
 #Main

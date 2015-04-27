@@ -94,7 +94,7 @@ kill_processes(){
     fi
 }
 
-PID_FILE=/tmp/uimirror.pid;
+PID_FILE=/uim/deploy/extra/uimirror.pid;
 PID_TO_KILL='';
 #Main
 while [ "$1" != "" ]; do
